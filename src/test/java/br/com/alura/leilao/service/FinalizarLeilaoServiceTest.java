@@ -31,21 +31,26 @@ public class FinalizarLeilaoServiceTest {
     @Mock
     private LeilaoDao leilaoDao;
 
+    @Mock
+    private EnviadorDeEmails enviadorDeEmails;
+
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        this.service = new FinalizarLeilaoService(leilaoDao);
+        this.service = new FinalizarLeilaoService(leilaoDao, enviadorDeEmails);
     }
 
     @Test
     public void testFinalizarLeilao() {
         List<Leilao> leiloes = leiloes();
-        
+
+        //.when quando for chamada essa ação
+        //.thenReturn retorne essa
         Mockito.when(leilaoDao.buscarLeiloesExpirados())
-               .thenReturn(leiloes);
-        
+                .thenReturn(leiloes);
+
         service.finalizarLeiloesExpirados();
-        
+
         Leilao leilao = leiloes.get(0);
         Assert.assertTrue(leilao.isFechado());
         Assert.assertEquals(new BigDecimal("900"),
@@ -53,24 +58,61 @@ public class FinalizarLeilaoServiceTest {
         Mockito.verify(leilaoDao).salvar(leilao);
 
     }
-    
-    private List<Leilao> leiloes(){
+
+    @Test
+    public void testEnviarEmail() {
+        List<Leilao> leiloes = leiloes();
+
+        //.when quando for chamada essa ação
+        //.thenReturn retorne essa
+        Mockito.when(leilaoDao.buscarLeiloesExpirados())
+                .thenReturn(leiloes);
+
+        service.finalizarLeiloesExpirados();
+
+        Leilao leilao = leiloes.get(0);
+        Lance maiorLance = leilao.getLanceVencedor();
+
+        Mockito.verify(enviadorDeEmails).enviarEmailVencedorLeilao(maiorLance);;
+    }
+
+    @Test
+    public void testdeErroNaoEnviarEmailEmCasoDeErro() {
+        List<Leilao> leiloes = leiloes();
+
+        //.when quando for chamada essa ação
+        //.thenReturn retorne essa
+        Mockito.when(leilaoDao.buscarLeiloesExpirados())
+                .thenReturn(leiloes);
+
+        Mockito.when(leilaoDao.salvar(Mockito.any())).thenThrow(RuntimeException.class);
+        
+        try{
+        service.finalizarLeiloesExpirados();
+        Mockito.verifyNoInteractions(enviadorDeEmails);
+        }catch(Exception e){
+            
+        }
+            
+    }
+
+    private List<Leilao> leiloes() {
         List<Leilao> lista = new ArrayList<>();
-        
-        Leilao leilao = new Leilao("Celular"
-                , new BigDecimal("500")
-                , new Usuario("fulano"));
-        
+
+        Leilao leilao = new Leilao("Celular",
+                 new BigDecimal("500"),
+                 new Usuario("fulano"));
+
         Lance primeiro = new Lance(new Usuario("Beltrano"),
                 new BigDecimal("600"));
         Lance segundo = new Lance(new Usuario("CiClano"),
                 new BigDecimal("900"));
-        
+
         leilao.propoe(primeiro);
         leilao.propoe(segundo);
-        
+
         lista.add(leilao);
-        
+
         return lista;
     }
 

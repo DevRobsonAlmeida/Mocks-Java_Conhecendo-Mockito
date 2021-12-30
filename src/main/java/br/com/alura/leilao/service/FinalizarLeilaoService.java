@@ -14,11 +14,14 @@ import java.util.ArrayList;
 public class FinalizarLeilaoService {
 
     private LeilaoDao leiloes;
+    private EnviadorDeEmails enviadorDeEmails;
 
     @Autowired
-    public FinalizarLeilaoService(LeilaoDao leiloes) {
+    public FinalizarLeilaoService(LeilaoDao leiloes, EnviadorDeEmails enviadorDeEmails) {
         this.leiloes = leiloes;
+        this.enviadorDeEmails = enviadorDeEmails;
     }
+    
 
     public void finalizarLeiloesExpirados() {
         List<Leilao> expirados = leiloes.buscarLeiloesExpirados();
@@ -27,8 +30,11 @@ public class FinalizarLeilaoService {
             leilao.setLanceVencedor(maiorLance);
             leilao.fechar();
             leiloes.salvar(leilao);
+            enviadorDeEmails.enviarEmailVencedorLeilao(maiorLance);
+            
         });
     }
+
 
     private Lance maiorLanceDadoNoLeilao(Leilao leilao) {
         List<Lance> lancesDoLeilao = new ArrayList<>(leilao.getLances());
